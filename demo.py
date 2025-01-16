@@ -13,6 +13,7 @@ from dust3r.model import AsymmetricCroCo3DStereo
 from dust3r.demo import get_args_parser, main_demo, set_print_with_timestamp
 
 import matplotlib.pyplot as pl
+
 pl.ion()
 
 torch.backends.cuda.matmul.allow_tf32 = True  # for gpu >= Ampere and pytorch >= 1.12

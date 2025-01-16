@@ -30,23 +30,23 @@ import matplotlib.pyplot as pl
 def get_args_parser():
     parser = argparse.ArgumentParser()
     parser_url = parser.add_mutually_exclusive_group()
-    parser_url.add_argument("--local_network", action='store_true', default=False,
-                            help="make app accessible on local network: address will be set to 0.0.0.0")
+    parser_url.add_argument("--local_network", action='store_true', default=False, help="make app accessible on local network: address will be set to 0.0.0.0")
     parser_url.add_argument("--server_name", type=str, default=None, help="server url, default is 127.0.0.1")
     parser.add_argument("--image_size", type=int, default=512, choices=[512, 224], help="image size")
-    parser.add_argument("--server_port", type=int, help=("will start gradio app on this port (if available). "
-                                                         "If None, will search for an available port starting at 7860."),
-                        default=None)
+    parser.add_argument(
+        "--server_port", type=int, help=("will start gradio app on this port (if available). " "If None, will search for an available port starting at 7860."), default=None
+    )
     parser_weights = parser.add_mutually_exclusive_group(required=True)
     parser_weights.add_argument("--weights", type=str, help="path to the model weights", default=None)
-    parser_weights.add_argument("--model_name", type=str, help="name of the model weights",
-                                choices=["DUSt3R_ViTLarge_BaseDecoder_512_dpt",
-                                         "DUSt3R_ViTLarge_BaseDecoder_512_linear",
-                                         "DUSt3R_ViTLarge_BaseDecoder_224_linear"])
+    parser_weights.add_argument(
+        "--model_name",
+        type=str,
+        help="name of the model weights",
+        choices=["DUSt3R_ViTLarge_BaseDecoder_512_dpt", "DUSt3R_ViTLarge_BaseDecoder_512_linear", "DUSt3R_ViTLarge_BaseDecoder_224_linear"],
+    )
     parser.add_argument("--device", type=str, default='cuda', help="pytorch device")
     parser.add_argument("--tmp_dir", type=str, default=None, help="value for tempfile.tempdir")
-    parser.add_argument("--silent", action='store_true', default=False,
-                        help="silence logs")
+    parser.add_argument("--silent", action='store_true', default=False, help="silence logs")
     return parser
 
 
@@ -63,9 +63,7 @@ def set_print_with_timestamp(time_format="%Y-%m-%d %H:%M:%S"):
     builtins.print = print_with_timestamp
 
 
-def _convert_scene_output_to_glb(outdir, imgs, pts3d, mask, focals, cams2world, cam_size=0.05,
-                                 cam_color=None, as_pointcloud=False,
-                                 transparent_cams=False, silent=False):
+def _convert_scene_output_to_glb(outdir, imgs, pts3d, mask, focals, cams2world, cam_size=0.05, cam_color=None, as_pointcloud=False, transparent_cams=False, silent=False):
     assert len(pts3d) == len(mask) <= len(imgs) <= len(cams2world) == len(focals)
     pts3d = to_numpy(pts3d)
     imgs = to_numpy(imgs)
@@ -93,9 +91,7 @@ def _convert_scene_output_to_glb(outdir, imgs, pts3d, mask, focals, cams2world, 
             camera_edge_color = cam_color[i]
         else:
             camera_edge_color = cam_color or CAM_COLORS[i % len(CAM_COLORS)]
-        add_scene_cam(scene, pose_c2w, camera_edge_color,
-                      None if transparent_cams else imgs[i], focals[i],
-                      imsize=imgs[i].shape[1::-1], screen_width=cam_size)
+        add_scene_cam(scene, pose_c2w, camera_edge_color, None if transparent_cams else imgs[i], focals[i], imsize=imgs[i].shape[1::-1], screen_width=cam_size)
 
     rot = np.eye(4)
     rot[:3, :3] = Rotation.from_euler('y', np.deg2rad(180)).as_matrix()
@@ -107,8 +103,7 @@ def _convert_scene_output_to_glb(outdir, imgs, pts3d, mask, focals, cams2world, 
     return outfile
 
 
-def get_3D_model_from_scene(outdir, silent, scene, min_conf_thr=3, as_pointcloud=False, mask_sky=False,
-                            clean_depth=False, transparent_cams=False, cam_size=0.05):
+def get_3D_model_from_scene(outdir, silent, scene, min_conf_thr=3, as_pointcloud=False, mask_sky=False, clean_depth=False, transparent_cams=False, cam_size=0.05):
     """
     extract 3D_model (glb file) from a reconstructed scene
     """
@@ -128,13 +123,30 @@ def get_3D_model_from_scene(outdir, silent, scene, min_conf_thr=3, as_pointcloud
     pts3d = to_numpy(scene.get_pts3d())
     scene.min_conf_thr = float(scene.conf_trf(torch.tensor(min_conf_thr)))
     msk = to_numpy(scene.get_masks())
-    return _convert_scene_output_to_glb(outdir, rgbimg, pts3d, msk, focals, cams2world, as_pointcloud=as_pointcloud,
-                                        transparent_cams=transparent_cams, cam_size=cam_size, silent=silent)
+    return _convert_scene_output_to_glb(
+        outdir, rgbimg, pts3d, msk, focals, cams2world, as_pointcloud=as_pointcloud, transparent_cams=transparent_cams, cam_size=cam_size, silent=silent
+    )
 
 
-def get_reconstructed_scene(outdir, model, device, silent, image_size, filelist, schedule, niter, min_conf_thr,
-                            as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size,
-                            scenegraph_type, winsize, refid):
+def get_reconstructed_scene(
+    outdir,
+    model,
+    device,
+    silent,
+    image_size,
+    filelist,
+    schedule,
+    niter,
+    min_conf_thr,
+    as_pointcloud,
+    mask_sky,
+    clean_depth,
+    transparent_cams,
+    cam_size,
+    scenegraph_type,
+    winsize,
+    refid,
+):
     """
     from a list of images, run dust3r inference, global aligner.
     then run get_3D_model_from_scene
@@ -158,8 +170,7 @@ def get_reconstructed_scene(outdir, model, device, silent, image_size, filelist,
     if mode == GlobalAlignerMode.PointCloudOptimizer:
         loss = scene.compute_global_alignment(init='mst', niter=niter, schedule=schedule, lr=lr)
 
-    outfile = get_3D_model_from_scene(outdir, silent, scene, min_conf_thr, as_pointcloud, mask_sky,
-                                      clean_depth, transparent_cams, cam_size)
+    outfile = get_3D_model_from_scene(outdir, silent, scene, min_conf_thr, as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size)
 
     # also return rgb, depth and confidence imgs
     # depth is normalized with the max value for all images
@@ -186,20 +197,14 @@ def set_scenegraph_options(inputfiles, winsize, refid, scenegraph_type):
     num_files = len(inputfiles) if inputfiles is not None else 1
     max_winsize = max(1, math.ceil((num_files - 1) / 2))
     if scenegraph_type == "swin":
-        winsize = gradio.Slider(label="Scene Graph: Window Size", value=max_winsize,
-                                minimum=1, maximum=max_winsize, step=1, visible=True)
-        refid = gradio.Slider(label="Scene Graph: Id", value=0, minimum=0,
-                              maximum=num_files - 1, step=1, visible=False)
+        winsize = gradio.Slider(label="Scene Graph: Window Size", value=max_winsize, minimum=1, maximum=max_winsize, step=1, visible=True)
+        refid = gradio.Slider(label="Scene Graph: Id", value=0, minimum=0, maximum=num_files - 1, step=1, visible=False)
     elif scenegraph_type == "oneref":
-        winsize = gradio.Slider(label="Scene Graph: Window Size", value=max_winsize,
-                                minimum=1, maximum=max_winsize, step=1, visible=False)
-        refid = gradio.Slider(label="Scene Graph: Id", value=0, minimum=0,
-                              maximum=num_files - 1, step=1, visible=True)
+        winsize = gradio.Slider(label="Scene Graph: Window Size", value=max_winsize, minimum=1, maximum=max_winsize, step=1, visible=False)
+        refid = gradio.Slider(label="Scene Graph: Id", value=0, minimum=0, maximum=num_files - 1, step=1, visible=True)
     else:
-        winsize = gradio.Slider(label="Scene Graph: Window Size", value=max_winsize,
-                                minimum=1, maximum=max_winsize, step=1, visible=False)
-        refid = gradio.Slider(label="Scene Graph: Id", value=0, minimum=0,
-                              maximum=num_files - 1, step=1, visible=False)
+        winsize = gradio.Slider(label="Scene Graph: Window Size", value=max_winsize, minimum=1, maximum=max_winsize, step=1, visible=False)
+        refid = gradio.Slider(label="Scene Graph: Id", value=0, minimum=0, maximum=num_files - 1, step=1, visible=False)
     return winsize, refid
 
 
@@ -213,18 +218,16 @@ def main_demo(tmpdirname, model, device, image_size, server_name, server_port, s
         with gradio.Column():
             inputfiles = gradio.File(file_count="multiple")
             with gradio.Row():
-                schedule = gradio.Dropdown(["linear", "cosine"],
-                                           value='linear', label="schedule", info="For global alignment!")
-                niter = gradio.Number(value=300, precision=0, minimum=0, maximum=5000,
-                                      label="num_iterations", info="For global alignment!")
-                scenegraph_type = gradio.Dropdown([("complete: all possible image pairs", "complete"),
-                                                   ("swin: sliding window", "swin"),
-                                                   ("oneref: match one image with all", "oneref")],
-                                                  value='complete', label="Scenegraph",
-                                                  info="Define how to make pairs",
-                                                  interactive=True)
-                winsize = gradio.Slider(label="Scene Graph: Window Size", value=1,
-                                        minimum=1, maximum=1, step=1, visible=False)
+                schedule = gradio.Dropdown(["linear", "cosine"], value='linear', label="schedule", info="For global alignment!")
+                niter = gradio.Number(value=300, precision=0, minimum=0, maximum=5000, label="num_iterations", info="For global alignment!")
+                scenegraph_type = gradio.Dropdown(
+                    [("complete: all possible image pairs", "complete"), ("swin: sliding window", "swin"), ("oneref: match one image with all", "oneref")],
+                    value='complete',
+                    label="Scenegraph",
+                    info="Define how to make pairs",
+                    interactive=True,
+                )
+                winsize = gradio.Slider(label="Scene Graph: Window Size", value=1, minimum=1, maximum=1, step=1, visible=False)
                 refid = gradio.Slider(label="Scene Graph: Id", value=0, minimum=0, maximum=0, step=1, visible=False)
 
             run_btn = gradio.Button("Run")
@@ -245,39 +248,17 @@ def main_demo(tmpdirname, model, device, image_size, server_name, server_port, s
             outgallery = gradio.Gallery(label='rgb,depth,confidence', columns=3, height="100%")
 
             # events
-            scenegraph_type.change(set_scenegraph_options,
-                                   inputs=[inputfiles, winsize, refid, scenegraph_type],
-                                   outputs=[winsize, refid])
-            inputfiles.change(set_scenegraph_options,
-                              inputs=[inputfiles, winsize, refid, scenegraph_type],
-                              outputs=[winsize, refid])
-            run_btn.click(fn=recon_fun,
-                          inputs=[inputfiles, schedule, niter, min_conf_thr, as_pointcloud,
-                                  mask_sky, clean_depth, transparent_cams, cam_size,
-                                  scenegraph_type, winsize, refid],
-                          outputs=[scene, outmodel, outgallery])
-            min_conf_thr.release(fn=model_from_scene_fun,
-                                 inputs=[scene, min_conf_thr, as_pointcloud, mask_sky,
-                                         clean_depth, transparent_cams, cam_size],
-                                 outputs=outmodel)
-            cam_size.change(fn=model_from_scene_fun,
-                            inputs=[scene, min_conf_thr, as_pointcloud, mask_sky,
-                                    clean_depth, transparent_cams, cam_size],
-                            outputs=outmodel)
-            as_pointcloud.change(fn=model_from_scene_fun,
-                                 inputs=[scene, min_conf_thr, as_pointcloud, mask_sky,
-                                         clean_depth, transparent_cams, cam_size],
-                                 outputs=outmodel)
-            mask_sky.change(fn=model_from_scene_fun,
-                            inputs=[scene, min_conf_thr, as_pointcloud, mask_sky,
-                                    clean_depth, transparent_cams, cam_size],
-                            outputs=outmodel)
-            clean_depth.change(fn=model_from_scene_fun,
-                               inputs=[scene, min_conf_thr, as_pointcloud, mask_sky,
-                                       clean_depth, transparent_cams, cam_size],
-                               outputs=outmodel)
-            transparent_cams.change(model_from_scene_fun,
-                                    inputs=[scene, min_conf_thr, as_pointcloud, mask_sky,
-                                            clean_depth, transparent_cams, cam_size],
-                                    outputs=outmodel)
+            scenegraph_type.change(set_scenegraph_options, inputs=[inputfiles, winsize, refid, scenegraph_type], outputs=[winsize, refid])
+            inputfiles.change(set_scenegraph_options, inputs=[inputfiles, winsize, refid, scenegraph_type], outputs=[winsize, refid])
+            run_btn.click(
+                fn=recon_fun,
+                inputs=[inputfiles, schedule, niter, min_conf_thr, as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size, scenegraph_type, winsize, refid],
+                outputs=[scene, outmodel, outgallery],
+            )
+            min_conf_thr.release(fn=model_from_scene_fun, inputs=[scene, min_conf_thr, as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size], outputs=outmodel)
+            cam_size.change(fn=model_from_scene_fun, inputs=[scene, min_conf_thr, as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size], outputs=outmodel)
+            as_pointcloud.change(fn=model_from_scene_fun, inputs=[scene, min_conf_thr, as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size], outputs=outmodel)
+            mask_sky.change(fn=model_from_scene_fun, inputs=[scene, min_conf_thr, as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size], outputs=outmodel)
+            clean_depth.change(fn=model_from_scene_fun, inputs=[scene, min_conf_thr, as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size], outputs=outmodel)
+            transparent_cams.change(model_from_scene_fun, inputs=[scene, min_conf_thr, as_pointcloud, mask_sky, clean_depth, transparent_cams, cam_size], outputs=outmodel)
     demo.launch(share=False, server_name=server_name, server_port=server_port)

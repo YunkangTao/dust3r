@@ -15,7 +15,7 @@ from dust3r.cloud_opt.commons import edge_str
 from dust3r.post_process import estimate_focal_knowing_depth
 
 
-class PairViewer (BasePCOptimizer):
+class PairViewer(BasePCOptimizer):
     """
     This a Dummy Optimizer.
     To use only when the goal is to visualize the results for a pair of images (with is_symmetrized)
@@ -32,28 +32,27 @@ class PairViewer (BasePCOptimizer):
         rel_poses = []
         confs = []
         for i in range(self.n_imgs):
-            conf = float(self.conf_i[edge_str(i, 1-i)].mean() * self.conf_j[edge_str(i, 1-i)].mean())
+            conf = float(self.conf_i[edge_str(i, 1 - i)].mean() * self.conf_j[edge_str(i, 1 - i)].mean())
             if self.verbose:
                 print(f'  - {conf=:.3} for edge {i}-{1-i}')
             confs.append(conf)
 
             H, W = self.imshapes[i]
-            pts3d = self.pred_i[edge_str(i, 1-i)]
-            pp = torch.tensor((W/2, H/2))
+            pts3d = self.pred_i[edge_str(i, 1 - i)]
+            pp = torch.tensor((W / 2, H / 2))
             focal = float(estimate_focal_knowing_depth(pts3d[None], pp, focal_mode='weiszfeld'))
             self.focals.append(focal)
             self.pp.append(pp)
 
             # estimate the pose of pts1 in image 2
             pixels = np.mgrid[:W, :H].T.astype(np.float32)
-            pts3d = self.pred_j[edge_str(1-i, i)].numpy()
+            pts3d = self.pred_j[edge_str(1 - i, i)].numpy()
             assert pts3d.shape[:2] == (H, W)
             msk = self.get_masks()[i].numpy()
             K = np.float32([(focal, 0, pp[0]), (0, focal, pp[1]), (0, 0, 1)])
 
             try:
-                res = cv2.solvePnPRansac(pts3d[msk], pixels[msk], K, None,
-                                         iterationsCount=100, reprojectionError=5, flags=cv2.SOLVEPNP_SQPNP)
+                res = cv2.solvePnPRansac(pts3d[msk], pixels[msk], K, None, iterationsCount=100, reprojectionError=5, flags=cv2.SOLVEPNP_SQPNP)
                 success, R, T, inliers = res
                 assert success
 
@@ -117,9 +116,7 @@ class PairViewer (BasePCOptimizer):
     def depth_to_pts3d(self):
         pts3d = []
         for d, intrinsics, im_pose in zip(self.depth, self.get_intrinsics(), self.get_im_poses()):
-            pts, _ = depthmap_to_absolute_camera_coordinates(d.cpu().numpy(),
-                                                             intrinsics.cpu().numpy(),
-                                                             im_pose.cpu().numpy())
+            pts, _ = depthmap_to_absolute_camera_coordinates(d.cpu().numpy(), intrinsics.cpu().numpy(), im_pose.cpu().numpy())
             pts3d.append(torch.from_numpy(pts).to(device=self.device))
         return pts3d
 
