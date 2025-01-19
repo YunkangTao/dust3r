@@ -6,7 +6,7 @@ from dust3r.image_pairs import make_pairs
 from dust3r.cloud_opt import global_aligner, GlobalAlignerMode
 
 
-def save_camera_parameters(intrinsics, poses, output_path, width = 512, height = 512, video_url = '...'):
+def save_camera_parameters(intrinsics, poses, output_prefix="camera"):
     """
     将相机内参和外参保存为文本文件。
 
@@ -15,37 +15,43 @@ def save_camera_parameters(intrinsics, poses, output_path, width = 512, height =
         poses (torch.Tensor): 相机外参矩阵（相机到世界），形状为 [n_imgs, 4, 4]
         output_prefix (str): 保存文件的前缀名称
     """
-    with open(output_path, 'w') as f:
-        f.write(f'{video_url}\n')
-        intrinsics_np = intrinsics.cpu().detach().numpy()
-        poses_np = poses.cpu().detach().numpy()
+    intrinsics_np = intrinsics.cpu().detach().numpy()
+    poses_np = poses.cpu().detach().numpy()
 
-        n = intrinsics_np.shape[0]
+    for i in range(intrinsics_np.shape[0]):
+        K = intrinsics_np[i]
+        pose = poses_np[i]
 
-        for i in range(intrinsics_np.shape[0]):
-            K = intrinsics_np[i]
-            pose = poses_np[i]
-            fx, fy = K[0, 0] / width, K[1, 1] / height
-            cx, cy = K[0, 2] / width, K[1, 2] / height
-            f.write(f'{i} {fx:.8f} {fy:.8f} {cx:.8f} {cy:.8f} {0:.8f} {0:.8f} ')
-            for i in range(3):
-                f.write(f"{pose[i, 0]:.8f} {pose[i, 1]:.8f} {pose[i, 2]:.8f} {pose[i, 3]:.8f} ")
-            f.write("\n")
+        # 保存内参
+        K_filename = f"{output_prefix}_{i+1}_intrinsic.txt"
+        np.savetxt(K_filename, K, fmt='%.6f')
+        print(f"Saved intrinsic matrix for Image {i+1} to {K_filename}")
+
+        # 保存外参
+        pose_filename = f"{output_prefix}_{i+1}_extrinsic.txt"
+        np.savetxt(pose_filename, pose, fmt='%.6f')
+        print(f"Saved extrinsic matrix for Image {i+1} to {pose_filename}")
 
 
 def main():
-    device = 'cpu'
+    device = 'cuda'
     batch_size = 1
     schedule = 'cosine'
     lr = 0.01
     niter = 300
 
-    model_name = "/home/lingcheng/dust3r/checkpoints/DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth"
+    model_name = "naver/DUSt3R_ViTLarge_BaseDecoder_512_dpt"
     # you can put the path to a local checkpoint in model_name if needed
     model = AsymmetricCroCo3DStereo.from_pretrained(model_name).to(device)
     # load_images can take a list of images or a directory
     images = load_images(
-        '/home/lingcheng/dust3r/assets/99ea4556246d1332',
+        [
+            'assets/770352d5c0066b2e/frame_000001.png',
+            'assets/770352d5c0066b2e/frame_000002.png',
+            'assets/770352d5c0066b2e/frame_000003.png',
+            'assets/770352d5c0066b2e/frame_000004.png',
+            'assets/770352d5c0066b2e/frame_000005.png',
+        ],
         size=512,
         square_ok=True,
     )
@@ -67,19 +73,19 @@ def main():
     extrinsics = poses  # 相机外参矩阵（相机到世界） [n_imgs, 4, 4]
 
     # 打印相机内参和外参
-    # for i in range(intrinsics.shape[0]):
-    #     K = intrinsics[i].cpu().detach().numpy()
-    #     pose = extrinsics[i].cpu().detach().numpy()
+    for i in range(intrinsics.shape[0]):
+        K = intrinsics[i].cpu().detach().numpy()
+        pose = extrinsics[i].cpu().detach().numpy()
 
-    #     print(f"Image {i+1}:")
-    #     print("Intrinsic Matrix (K):")
-    #     print(K)
-    #     print("Extrinsic Matrix (Camera-to-World Pose):")
-    #     print(pose)
-    #     print("-" * 50)
+        print(f"Image {i+1}:")
+        print("Intrinsic Matrix (K):")
+        print(K)
+        print("Extrinsic Matrix (Camera-to-World Pose):")
+        print(pose)
+        print("-" * 50)
 
     # 可选：将相机内参和外参保存为文件
-    save_camera_parameters(intrinsics, extrinsics, output_path = './99ea4556246d1332.txt')
+    save_camera_parameters(intrinsics, extrinsics, output_prefix="camera")
 
 
 if __name__ == '__main__':
